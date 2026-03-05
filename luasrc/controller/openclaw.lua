@@ -87,6 +87,7 @@ function action_status()
 		port = port,
 		pty_port = pty_port,
 		gateway_running = false,
+		gateway_starting = false,
 		pty_running = false,
 		pid = "",
 		memory_kb = 0,
@@ -121,6 +122,14 @@ function action_status()
 	-- 网关端口检查
 	local gw_check = sys.exec("netstat -tlnp 2>/dev/null | grep -c ':" .. port .. " ' || echo 0"):gsub("%s+", "")
 	result.gateway_running = (tonumber(gw_check) or 0) > 0
+
+	-- 如果端口未监听但 procd 进程存在，说明正在启动中 (gateway 初始化需要数分钟)
+	if not result.gateway_running and enabled == "1" then
+		local procd_pid = sys.exec("pgrep -f 'openclaw.*gateway' 2>/dev/null | head -1"):gsub("%s+", "")
+		if procd_pid ~= "" then
+			result.gateway_starting = true
+		end
+	end
 
 	-- PTY 端口检查
 	local pty_check = sys.exec("netstat -tlnp 2>/dev/null | grep -c ':" .. pty_port .. " ' || echo 0"):gsub("%s+", "")
@@ -183,8 +192,13 @@ function action_service_ctl()
 		sys.exec("/etc/init.d/openclaw start >/dev/null 2>&1 &")
 	elseif action == "stop" then
 		sys.exec("/etc/init.d/openclaw stop >/dev/null 2>&1")
+		-- stop 后额外等待确保端口释放
+		sys.exec("sleep 2")
 	elseif action == "restart" then
-		sys.exec("/etc/init.d/openclaw restart >/dev/null 2>&1 &")
+		-- 先完整 stop (确保端口释放)，再后台 start
+		sys.exec("/etc/init.d/openclaw stop >/dev/null 2>&1")
+		sys.exec("sleep 2")
+		sys.exec("/etc/init.d/openclaw start >/dev/null 2>&1 &")
 	elseif action == "enable" then
 		sys.exec("/etc/init.d/openclaw enable 2>/dev/null")
 	elseif action == "disable" then
