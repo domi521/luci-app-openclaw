@@ -192,8 +192,13 @@ function action_service_ctl()
 		sys.exec("/etc/init.d/openclaw start >/dev/null 2>&1 &")
 	elseif action == "stop" then
 		sys.exec("/etc/init.d/openclaw stop >/dev/null 2>&1")
+		-- stop 后额外等待确保端口释放
+		sys.exec("sleep 2")
 	elseif action == "restart" then
-		sys.exec("/etc/init.d/openclaw restart >/dev/null 2>&1 &")
+		-- 先完整 stop (确保端口释放)，再后台 start
+		sys.exec("/etc/init.d/openclaw stop >/dev/null 2>&1")
+		sys.exec("sleep 2")
+		sys.exec("/etc/init.d/openclaw start >/dev/null 2>&1 &")
 	elseif action == "enable" then
 		sys.exec("/etc/init.d/openclaw enable 2>/dev/null")
 	elseif action == "disable" then
