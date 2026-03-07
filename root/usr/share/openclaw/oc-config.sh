@@ -1689,11 +1689,10 @@ main_menu() {
 		echo -e "  ${CYAN}2)${NC} 🤖 配置 AI 模型提供商"
 		echo -e "  ${CYAN}3)${NC} 🔄 设定当前活跃模型"
 		echo -e "  ${CYAN}4)${NC} 📡 配置消息渠道 (Telegram/Discord/飞书/Slack)"
-		echo -e "  ${CYAN}5)${NC} 🤝 Telegram 配对助手"
-		echo -e "  ${CYAN}6)${NC} 🔍 健康检查 / 诊断"
-		echo -e "  ${CYAN}7)${NC} 🔄 重启 Gateway"
-		echo -e "  ${CYAN}8)${NC} 📝 查看原始配置文件"
-		echo -e "  ${CYAN}9)${NC} ⚠️  恢复默认配置"
+		echo -e "  ${CYAN}5)${NC} 🔍 健康检查 / 诊断"
+		echo -e "  ${CYAN}6)${NC} 🔄 重启 Gateway"
+		echo -e "  ${CYAN}7)${NC} 📝 查看原始配置文件"
+		echo -e "  ${CYAN}8)${NC} ⚠️  恢复默认配置"
 		echo -e "  ${CYAN}0)${NC} 退出"
 		echo ""
 		prompt_with_default "请选择" "1" menu_choice
@@ -1703,10 +1702,9 @@ main_menu() {
 			2) configure_model ;;
 			3) set_active_model ;;
 			4) configure_channels ;;
-			5) telegram_pairing ;;
-			6) health_check ;;
-			7) restart_gateway ;;
-			8)
+			5) health_check ;;
+			6) restart_gateway ;;
+			7)
 				echo ""
 				echo -e "  ${CYAN}配置文件路径: ${CONFIG_FILE}${NC}"
 				echo ""
@@ -1722,7 +1720,7 @@ main_menu() {
 					ask_restart
 				fi
 				;;
-			9) reset_to_defaults ;;
+			8) reset_to_defaults ;;
 			0)
 				echo -e "  ${GREEN}再见！${NC}"
 				exit 0
