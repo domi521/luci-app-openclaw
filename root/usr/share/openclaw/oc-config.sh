@@ -144,7 +144,31 @@ auth_set_apikey() {
 		d.profiles[process.env._AP_PROFILE]={
 			type:'api_key',
 			provider:process.env._AP_PROVIDER,
-			token:process.env._AP_KEY
+			key:process.env._AP_KEY
+		};
+		fs.writeFileSync(f,JSON.stringify(d,null,2));
+	" 2>/dev/null
+	chown openclaw:openclaw "$auth_file" 2>/dev/null || true
+}
+
+# ── GitHub Copilot Token 写入 auth-profiles.json (type:token) ──
+# GitHub Copilot 使用 token 类型而非 api_key，OpenClaw 会自动兑换 Copilot session token
+# 用法: auth_set_copilot_token <github_token>
+auth_set_copilot_token() {
+	local github_token="$1"
+	local auth_dir="${OC_STATE_DIR}/agents/main/agent"
+	local auth_file="${auth_dir}/auth-profiles.json"
+	mkdir -p "$auth_dir"
+	chown -R openclaw:openclaw "${OC_STATE_DIR}/agents" 2>/dev/null || true
+	_AP_TOKEN="$github_token" "$NODE_BIN" -e "
+		const fs=require('fs'),f='${auth_file}';
+		let d={version:1,profiles:{},usageStats:{}};
+		try{d=JSON.parse(fs.readFileSync(f,'utf8'));}catch(e){}
+		if(!d.profiles)d.profiles={};
+		d.profiles['github-copilot:github']={
+			type:'token',
+			provider:'github-copilot',
+			token:process.env._AP_TOKEN
 		};
 		fs.writeFileSync(f,JSON.stringify(d,null,2));
 	" 2>/dev/null
@@ -573,50 +597,73 @@ configure_model() {
 			echo ""
 			echo -e "  ${BOLD}GitHub Copilot 配置${NC}"
 			echo -e "  ${YELLOW}需要有效的 GitHub Copilot 订阅 (Free/Pro/Business 均可)${NC}"
-			echo -e "  ${YELLOW}使用 OAuth 自动认证，无需手动输入 Token${NC}"
 			echo ""
 			echo -e "  ${CYAN}配置方式:${NC}"
-			echo -e "    ${CYAN}a)${NC} 通过 OAuth 授权登录 (推荐)"
-			echo -e "    ${CYAN}b)${NC} 手动输入 GitHub Token (ghp_...)"
+			echo -e "    ${CYAN}a)${NC} OAuth 授权登录 — 内置 Device Flow ${GREEN}★ 推荐${NC}"
+			echo -e "    ${CYAN}b)${NC} Copilot Proxy 插件 — 需要 VS Code 运行${NC}"
 			echo ""
 			prompt_with_default "请选择" "a" copilot_mode
 			case "$copilot_mode" in
-				a)
+				b)
 					echo ""
 					echo -e "  ${CYAN}启用 Copilot Proxy 插件...${NC}"
 					enable_auth_plugins
-					echo -e "  ${CYAN}启动 GitHub Copilot OAuth 授权...${NC}"
+					echo -e "  ${CYAN}启动 Copilot Proxy OAuth 授权...${NC}"
 					oc_cmd models auth login --provider copilot-proxy --set-default || echo -e "  ${YELLOW}OAuth 授权已退出${NC}"
 					echo ""
 					ask_restart
 					return
 					;;
-				b|*)
+				a|*)
 					echo ""
-					echo -e "  ${YELLOW}获取 Token: https://github.com/settings/tokens (需 copilot 权限)${NC}"
+					echo -e "  ${CYAN}启动 GitHub Copilot OAuth 登录...${NC}"
+					echo -e "  ${DIM}请在浏览器中打开显示的 URL，输入授权码完成登录${NC}"
 					echo ""
-					prompt_with_default "请输入 GitHub Token (ghp_...)" "" api_key
-					if [ -n "$api_key" ]; then
-						auth_set_apikey github-copilot "$api_key" "github-copilot:github"
+					if oc_cmd models auth login-github-copilot --yes; then
 						echo ""
-						echo -e "  ${CYAN}可用模型:${NC}"
-						echo -e "    ${CYAN}a)${NC} github-copilot/claude-sonnet-4 — Claude Sonnet 4 (推荐)"
-						echo -e "    ${CYAN}b)${NC} github-copilot/gpt-5.2         — GPT-5.2"
-						echo -e "    ${CYAN}c)${NC} github-copilot/gemini-2.5-pro  — Gemini 2.5 Pro"
-						echo -e "    ${CYAN}d)${NC} github-copilot/o3              — o3"
-						echo -e "    ${CYAN}e)${NC} 手动输入模型名"
+						echo -e "  ${GREEN}✅ GitHub Copilot OAuth 认证成功${NC}"
+						echo ""
+						echo -e "  ${CYAN}选择默认模型:${NC}"
+						echo ""
+						echo -e "  ${CYAN}── GPT 系列 ──${NC}"
+						echo -e "    ${CYAN}a)${NC}  github-copilot/gpt-4.1           — GPT-4.1 ${GREEN}(推荐)${NC}"
+						echo -e "    ${CYAN}b)${NC}  github-copilot/gpt-4o            — GPT-4o"
+						echo -e "    ${CYAN}c)${NC}  github-copilot/gpt-5             — GPT-5"
+						echo -e "    ${CYAN}d)${NC}  github-copilot/gpt-5-mini        — GPT-5 mini"
+						echo -e "    ${CYAN}e)${NC}  github-copilot/gpt-5.1           — GPT-5.1"
+						echo -e "    ${CYAN}f)${NC}  github-copilot/gpt-5.2           — GPT-5.2"
+						echo -e "    ${CYAN}g)${NC}  github-copilot/gpt-5.2-codex     — GPT-5.2 Codex"
+						echo ""
+						echo -e "  ${CYAN}── Claude 系列 ──${NC}"
+						echo -e "    ${CYAN}h)${NC}  github-copilot/claude-sonnet-4   — Claude Sonnet 4"
+						echo -e "    ${CYAN}i)${NC}  github-copilot/claude-sonnet-4.5 — Claude Sonnet 4.5"
+						echo -e "    ${CYAN}j)${NC}  github-copilot/claude-sonnet-4.6 — Claude Sonnet 4.6"
+						echo ""
+						echo -e "  ${CYAN}── Gemini 系列 ──${NC}"
+						echo -e "    ${CYAN}k)${NC}  github-copilot/gemini-2.5-pro    — Gemini 2.5 Pro"
+						echo ""
+						echo -e "    ${CYAN}m)${NC}  手动输入模型名"
 						echo ""
 						prompt_with_default "请选择模型" "a" model_choice
 						case "$model_choice" in
-							a) model_name="github-copilot/claude-sonnet-4" ;;
-							b) model_name="github-copilot/gpt-5.2" ;;
-							c) model_name="github-copilot/gemini-2.5-pro" ;;
-							d) model_name="github-copilot/o3" ;;
-							e) prompt_with_default "请输入模型名称" "github-copilot/claude-sonnet-4" model_name ;;
-							*) model_name="github-copilot/claude-sonnet-4" ;;
+							a) model_name="github-copilot/gpt-4.1" ;;
+							b) model_name="github-copilot/gpt-4o" ;;
+							c) model_name="github-copilot/gpt-5" ;;
+							d) model_name="github-copilot/gpt-5-mini" ;;
+							e) model_name="github-copilot/gpt-5.1" ;;
+							f) model_name="github-copilot/gpt-5.2" ;;
+							g) model_name="github-copilot/gpt-5.2-codex" ;;
+							h) model_name="github-copilot/claude-sonnet-4" ;;
+							i) model_name="github-copilot/claude-sonnet-4.5" ;;
+							j) model_name="github-copilot/claude-sonnet-4.6" ;;
+							k) model_name="github-copilot/gemini-2.5-pro" ;;
+							m) prompt_with_default "请输入模型名称" "github-copilot/gpt-4.1" model_name ;;
+							*) model_name="github-copilot/gpt-4.1" ;;
 						esac
 						register_and_set_model "$model_name"
-						echo -e "  ${GREEN}✅ GitHub Copilot 已配置，活跃模型: ${model_name}${NC}"
+						echo -e "  ${GREEN}✅ 活跃模型已设置: ${model_name}${NC}"
+					else
+						echo -e "  ${YELLOW}OAuth 授权已退出或失败${NC}"
 					fi
 					;;
 			esac
