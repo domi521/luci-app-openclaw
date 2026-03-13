@@ -128,7 +128,7 @@ function action_status()
 
 	-- 如果端口未监听但 procd 进程存在，说明正在启动中 (gateway 初始化需要数分钟)
 	if not result.gateway_running and enabled == "1" then
-		local procd_pid = sys.exec("pgrep -f 'openclaw.*gateway|node.*openclaw.*gateway' 2>/dev/null | head -1"):gsub("%s+", "")
+		local procd_pid = sys.exec("pgrep -f 'openclaw.*gateway' 2>/dev/null | head -1"):gsub("%s+", "")
 		if procd_pid ~= "" then
 			result.gateway_starting = true
 		end

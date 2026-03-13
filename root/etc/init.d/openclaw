@@ -336,7 +336,7 @@ fi
 
 service_triggers() {
 procd_add_reload_trigger "openclaw"
-	procd_add_network_trigger "lan" "wan"
+
 }
 
 reload_service() {
